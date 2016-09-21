@@ -1,0 +1,652 @@
+---
+output:
+  pdf_document: default
+  html_document: default
+---
+#1.Introduction
+It goes without saying that divorce and the stories behind it are becoming heated topics in the contemporary society. One can hardly go anywhere without hearing about the shockingly high divorce rates constantly broadcasted by the press and media ... In this script, we focus on a couple of general factors that are associated with the end of marriages.
+
+Firstly, we took a look at the distinct divorce rates in different states. Then we examined separately the relationships between the divorce rates and the contributing factors of interests, including education levels, income levels, race, occupations, and working hours per week. Moreover, following the thread of curiosity, we took a closer look at  several specific topics, such as which race demonstrates a relatively higher divorce rate, whether people working in the financial industry are more prone to divorce,  or how the financial conditions and working time affect the qualities of marriages? Finally, we compared and analyzed two states that illustrated the highest and lowest divorce rates based on our former results.
+
+##1.1 Clearing environment and setting work directory
+```{r,echo=FALSE,message=FALSE,warning=FALSE}
+#clear global environment
+rm(list=ls(all=TRUE))
+#set work dictority
+setwd("C:/Study/Columbia/W4243_Applied_Data_Science/Project1/data")
+```
+
+##1.2 Libraries we need
+```{r message=FALSE,warning=FALSE}
+library(data.table)
+library(dplyr)
+```
+
+##1.3 Loading data
+```{r echo=TRUE,message=FALSE,results='hide'}
+varToKeep <- c("PWGTP","ST","SCHL","AGEP","SEX","MSP","WAGP","CIT","COW","WKHP","RAC1P","JWMNP","MARHT","MARHYP","RETP","ANC","DIS","ESR","FOD1P","NATIVITY","OC","OCCP","PERNP","MAR","POVPIP","QTRBIR")
+data1 <- fread('ss13pusa.csv',select = varToKeep)
+data2 <- fread('ss13pusb.csv',select = varToKeep)
+dataAll <- rbind(data1,data2)
+```
+
+##1.4 Data manipulation
+```{r,message=FALSE}
+# change factors   married status
+dataAll$MAR <- factor(dataAll$MAR)
+marryStatus <- c("Married","Widowed","Divorced","Separated","Never married or under 15 years old")
+levels(dataAll$MAR) <- marryStatus
+```
+
+```{r,echo=FALSE, results='hide',message=FALSE}
+# change factor    wage last year
+dataAll$WAGP2[dataAll$WAGP %in% c(0:10000)] <- "0-10k"
+dataAll$WAGP2[dataAll$WAGP %in% c(10000:20000)] <- "10-20k"
+dataAll$WAGP2[dataAll$WAGP %in% c(20000:30000)] <- "20-30k"
+dataAll$WAGP2[dataAll$WAGP %in% c(30000:40000)] <- "30-40k"
+dataAll$WAGP2[dataAll$WAGP %in% c(40000:50000)] <- "40-50k"
+dataAll$WAGP2[dataAll$WAGP %in% c(50000:60000)] <- "50-60k"
+dataAll$WAGP2[dataAll$WAGP %in% c(60000:70000)] <- "60k-70k"
+dataAll$WAGP2[dataAll$WAGP %in% c(70000:80000)] <- "70k-80k"
+dataAll$WAGP2[dataAll$WAGP %in% c(80000:90000)] <- "80k-90k"
+dataAll$WAGP2[dataAll$WAGP %in% c(90000:100000)] <- "90k-100k"
+dataAll$WAGP2[dataAll$WAGP %in% c(100000:1000000)] <- "over100k"
+
+
+#change factor    work hour per week
+dataAll$WKHP[is.na(dataAll$WKHP) ] <- "<0h"
+dataAll$WKHP[dataAll$WKHP %in% c(0:10)] <- "0-10h"
+dataAll$WKHP[dataAll$WKHP %in% c(10:20)] <- "10-20h"
+dataAll$WKHP[dataAll$WKHP %in% c(20:30)] <- "20-30h"
+dataAll$WKHP[dataAll$WKHP %in% c(30:40)] <- "30-40h"
+dataAll$WKHP[dataAll$WKHP %in% c(40:50)] <- "40-50h"
+dataAll$WKHP[dataAll$WKHP %in% c(50:60)] <- "50-60h"
+dataAll$WKHP[dataAll$WKHP %in% c(60:70)] <- "60-70h"
+dataAll$WKHP[dataAll$WKHP %in% c(70:80)] <- "70-80h"
+dataAll$WKHP[dataAll$WKHP %in% c(80:90)] <- "80-90h"
+dataAll$WKHP[dataAll$WKHP %in% c(90:100)] <- "90-100h"
+dataAll$WKHP[dataAll$WKHP %in% c(100:200)] <- "over100h"
+
+# change factor occupation 
+dataAll$OCCP1[dataAll$OCCP >= 0010 & dataAll$OCCP <= 0430] <- "MGR"
+dataAll$OCCP1[dataAll$OCCP >= 0500 & dataAll$OCCP <= 0740] <- "BUS"
+dataAll$OCCP1[dataAll$OCCP >= 0800 & dataAll$OCCP <= 0950] <- "FIN"
+dataAll$OCCP1[dataAll$OCCP >= 1005 & dataAll$OCCP <= 1240] <- "CMM"
+dataAll$OCCP1[dataAll$OCCP >= 1300 & dataAll$OCCP <= 1560] <- "ENG"
+dataAll$OCCP1[dataAll$OCCP >= 1600 & dataAll$OCCP <= 1965] <- "SCI"
+dataAll$OCCP1[dataAll$OCCP >= 2000 & dataAll$OCCP <= 2060] <- "CMS"
+dataAll$OCCP1[dataAll$OCCP >= 2100 & dataAll$OCCP <= 2160] <- "LGL"
+dataAll$OCCP1[dataAll$OCCP >= 2200 & dataAll$OCCP <= 2550] <- "EDU"
+dataAll$OCCP1[dataAll$OCCP >= 2600 & dataAll$OCCP <= 2920] <- "ENT"
+dataAll$OCCP1[dataAll$OCCP >= 3000 & dataAll$OCCP <= 3540] <- "MED"
+dataAll$OCCP1[dataAll$OCCP >= 3600 & dataAll$OCCP <= 3655] <- "HLS"
+dataAll$OCCP1[dataAll$OCCP >= 3700 & dataAll$OCCP <= 3955] <- "PRT"
+dataAll$OCCP1[dataAll$OCCP >= 4000 & dataAll$OCCP <= 4150] <- "EAT"
+dataAll$OCCP1[dataAll$OCCP >= 4200 & dataAll$OCCP <= 4250] <- "CLN"
+dataAll$OCCP1[dataAll$OCCP >= 4300 & dataAll$OCCP <= 4650] <- "PRS"
+dataAll$OCCP1[dataAll$OCCP >= 4700 & dataAll$OCCP <= 4965] <- "SAL"
+dataAll$OCCP1[dataAll$OCCP >= 5000 & dataAll$OCCP <= 5940] <- "OFF"
+dataAll$OCCP1[dataAll$OCCP >= 6005 & dataAll$OCCP <= 6130] <- "FFF"
+dataAll$OCCP1[dataAll$OCCP >= 6200 & dataAll$OCCP <= 6765] <- "CON"
+dataAll$OCCP1[dataAll$OCCP >= 6800 & dataAll$OCCP <= 6940] <- "EXT"
+dataAll$OCCP1[dataAll$OCCP >= 7000 & dataAll$OCCP <= 7630] <- "RPR"
+dataAll$OCCP1[dataAll$OCCP >= 7700 & dataAll$OCCP <= 8965] <- "PRD"
+dataAll$OCCP1[dataAll$OCCP >= 9000 & dataAll$OCCP <= 9750] <- "TRN"
+dataAll$OCCP1[dataAll$OCCP >= 9800 & dataAll$OCCP <= 9830] <- "MIL"
+
+## change factors races
+dataAll$RAC1P <- factor(dataAll$RAC1P)
+raceStatus <- c("White","Black or African American",
+                "American Indian","Alaska Native",
+                "American Indian and Alaska Native tribes",
+                "Asian","Native Hawaissan and Other Pacific Islander",
+                "Some other","Two or More Races")
+levels(dataAll$RAC1P) <- raceStatus
+
+# change factor Education Level
+dataAll$SCHL[dataAll$SCHL <9] <- "ELEM"
+dataAll$SCHL[dataAll$SCHL ==9] <- "MIDD"
+dataAll$SCHL[dataAll$SCHL ==10] <- "MIDD"
+dataAll$SCHL[dataAll$SCHL ==11] <- "MIDD"
+dataAll$SCHL[dataAll$SCHL >11 & dataAll$SCHL <17] <- "HIGH"
+dataAll$SCHL[dataAll$SCHL >16 & dataAll$SCHL <21] <- "SOME"
+dataAll$SCHL[dataAll$SCHL==21] <- "BACH"
+dataAll$SCHL[dataAll$SCHL==22] <- "MAST"
+dataAll$SCHL[dataAll$SCHL==23] <- "PROF"
+dataAll$SCHL[dataAll$SCHL==24] <- "DOCT"
+
+# preprocess the data by filter several variables, so that it can be used below
+marriedAllData <- 
+  dataAll %>%
+  filter(!is.na(MAR)) %>%
+  filter(!is.na(PWGTP)) %>%
+  filter(MAR %in%c("Married","Widowed","Divorced","Separated")) %>%
+  filter(!is.na(MARHT)) 
+
+# get the dataset that includes people who have gotten married
+everDivorcedAllData <- marriedAllData[(marriedAllData$MAR != "Divorced" & marriedAllData$MARHT > 1) 
+                                      | marriedAllData$MAR == "Divorced",]
+```
+
+#2.Divorce rates by states
+
+##2.1 Definition for "divorce rates"
+Our group chose personal data in 2013. So unlike divorce to marriage ratio, which is the number of divorces to the number of marriages in a given year, we define the divorce rate in our report as the number of people who have ever got divorced over the number of people who have ever got married. This definition is based on features of this particular personal data.
+
+##2.2 Data manipulation
+```{r,echo=FALSE, results='hide',message=FALSE}
+#plot divorce Rate by state 
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(ST))
+
+marriedData_total <- 
+  marriedData %>%
+  group_by(ST) %>%
+  summarise(PWGTP=sum(PWGTP))
+
+#now divorced and who onced divorced  
+marriedData_divorced <-
+  marriedData[(marriedData$MAR != "Divorced" & marriedData$MARHT > 1) | (marriedData$MAR == "Divorced"),] %>%
+  group_by(ST) %>%
+  summarise(PWGTP=sum(PWGTP))
+
+#read statename and use it to deal the original data
+statenames <- fread('statename.csv',select = "name")
+statenames<-statenames[- grep("puerto rico", statenames$name),]
+marriedData_total$ST <- factor(marriedData_total$ST)
+marriedData_divorced$ST <- factor(marriedData_divorced$ST)
+levels(marriedData_total$ST) <- statenames$name
+levels(marriedData_divorced$ST) <- statenames$name
+colnames(statenames)<-c('ST')
+```
+
+```{r,message=FALSE,warning=FALSE}
+#calculate the divorced rate by state
+marriedData_divorced<-right_join(marriedData_divorced,statenames,by.x=c('ST'))
+marriedData_divorced<-mutate(marriedData_divorced,value=round(marriedData_divorced$PWGTP/marriedData_total$PWGTP,2))
+marriedData_for_draw<-marriedData_divorced[,c(1,3)]
+colnames(marriedData_for_draw)<-c('region','value')
+```
+
+##2.3 Divorce rates by states
+```{r,warning=FALSE,message=FALSE}
+#draw the plot
+library(choroplethrMaps)
+library(choroplethr)
+state_choropleth(marriedData_for_draw,title='Divorce Rate by State',legend='rate',num_colors = 5)
+```
+
+As we can see,divorce rates vary from different states quite much, some states like NY,CA have low divorce rate while some states like NV or OK have high divorce rates, we'd like to find out what variables inflence the divorce rates.
+
+#3. Factors of interests
+
+##3.1 Education level
+By categorizing the education levels displayed in this data into 8 subgroups, from having attended "Elementary School" to obtaining a "Doctorate Degree", we hope to investigate in details how a variety of education levels would impact the divorce rates in the States.
+
+###3.1.1 Data manipulation
+```{r,echo=FALSE}
+#Education Level Vs Divorce
+### get the proportion of divorced according to different races
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(SCHL))
+
+ElemSchl=marriedData[marriedData$SCHL=="ELEM",]
+MiddleSchl=marriedData[marriedData$SCHL=="MIDD",]
+HighSchl=marriedData[marriedData$SCHL=="HIGH",]
+SomeDegree=marriedData[marriedData$SCHL=="SOME",]
+BachDegree=marriedData[marriedData$SCHL=="BACH",]
+MasterDegree=marriedData[marriedData$SCHL=="MAST",]
+ProDegree=marriedData[marriedData$SCHL=="PROF",]
+DocDegree=marriedData[marriedData$SCHL=="DOCT",]
+
+
+# divorce rate in each group
+ElemSchl_DivRate=((sum(ElemSchl[ElemSchl$MAR != "Divorced" & ElemSchl$MARHT > 1,]$PWGTP))+sum(ElemSchl[ElemSchl$MAR=="Divorced",]$PWGTP))/(sum(ElemSchl$PWGTP))
+MiddleSchl_DivRate=((sum(MiddleSchl[MiddleSchl$MAR != "Divorced" & MiddleSchl$MARHT > 1,]$PWGTP))+sum(MiddleSchl[MiddleSchl$MAR=="Divorced",]$PWGTP))/(sum(MiddleSchl$PWGTP))
+HighSchl_DivRate=((sum(HighSchl[HighSchl$MAR != "Divorced" & HighSchl$MARHT > 1,]$PWGTP))+sum(HighSchl[HighSchl$MAR=="Divorced",]$PWGTP))/(sum(HighSchl$PWGTP))
+SomeDegree_DivRate=((sum(SomeDegree[SomeDegree$MAR != "Divorced" & SomeDegree$MARHT > 1,]$PWGTP))+sum(SomeDegree[SomeDegree$MAR=="Divorced",]$PWGTP))/(sum(SomeDegree$PWGTP))
+Bach_DivRate=((sum(BachDegree[BachDegree$MAR != "Divorced" & BachDegree$MARHT > 1,]$PWGTP))+sum(BachDegree[BachDegree$MAR=="Divorced",]$PWGTP))/(sum(BachDegree$PWGTP))
+Master_DivRate=((sum(MasterDegree[MasterDegree$MAR != "Divorced" & MasterDegree$MARHT > 1,]$PWGTP))+sum(MasterDegree[MasterDegree$MAR=="Divorced",]$PWGTP))/(sum(MasterDegree$PWGTP))
+Pro_DivRate=((sum(ProDegree[ProDegree$MAR != "Divorced" & ProDegree$MARHT > 1,]$PWGTP))+sum(ProDegree[ProDegree$MAR=="Divorced",]$PWGTP))/(sum(ProDegree$PWGTP))
+Doc_DivRate=((sum(DocDegree[DocDegree$MAR != "Divorced" & DocDegree$MARHT > 1,]$PWGTP))+sum(DocDegree[DocDegree$MAR=="Divorced",]$PWGTP))/(sum(DocDegree$PWGTP))
+```
+
+```{r}
+EduLevel=c("Elementary School", "Middle School","High School","Some Degree","Bachelor's Degree",
+            "Master's Degree","Professional Degree","Doctorate Degree")
+Edu_DivRate=c(ElemSchl_DivRate,MiddleSchl_DivRate,HighSchl_DivRate,SomeDegree_DivRate,Bach_DivRate,
+              Master_DivRate,Pro_DivRate,Doc_DivRate)
+# round up the rates to make graphs look nicer
+Edu_DivRate_2d=round(100*Edu_DivRate, digits=2)
+```
+
+###3.1.2 Divorce rates against education levels
+```{r,warning=FALSE,message=FALSE}
+# plot the graphs
+library(highcharter)
+highchart() %>% 
+  hc_chart(margin=130,height=600)%>%
+  hc_chart(type = "pyramid")%>% 
+  hc_add_series(
+    name ="Education Level Percentages",
+    data = list_parse(
+      data.frame(name = EduLevel,
+                 y = Edu_DivRate_2d)))
+```
+
+With respect to the education levels, we particularly selected the "Pyramid" chart to illustrate the gradual learning process of a person. As seen in the graphic above, the heights of each trapezoid or triangle represent the average divorce rate of that subgroup respectively. Intuitively, the larger the height of each section, the higher its calculated divorce rate is. For instance, it's shown that people of "Some Degrees" (between high schools and bachelor's degrees) have the highest divorce rates of 42%. 
+
+Of course, our results are inconsistencies with the common sense that people who are well-educated tend to stay in marriages. Surprisingly, however, people with doctorate degrees are slightly more likely to get divorced than those with master's or bachelor's degrees.
+
+##3.2 Race
+We calculate the divorce rates among 9 different races accordingly. 
+
+###3.2.1 Data manipulation
+```{r,echo=FALSE}
+### get the proportion of divorced according to different races
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(RAC1P))
+
+everDivorcedData <- 
+  everDivorcedAllData %>%
+  filter(!is.na(RAC1P))
+
+dataRACE <- aggregate(marriedData$PWGTP, by = list(marriedData$RAC1P),FUN = sum)
+names(dataRACE) <- c('RACE','PWGTP')
+
+dataDivorcedRACE <- aggregate(everDivorcedData$PWGTP, by = list(everDivorcedData$RAC1P),FUN = sum)
+names(dataDivorcedRACE) <- c('RACE','PWGTP')
+
+dataRACE <- as.vector(dataRACE)
+dataDivorcedRACE <- as.vector(dataDivorcedRACE)
+
+```
+
+###3.2.2 Divorce rates against race
+```{r,warning=FALSE}
+highchart() %>% 
+  hc_title(text = "Divorce rate by race") %>%
+  hc_add_series_labels_values(dataRACE$RACE, round(dataDivorcedRACE[,2] / dataRACE[,2]*100,2), name = "Pie",
+                              colorByPoint = TRUE, type = "column") %>% 
+  hc_add_series_labels_values(dataRACE$RACE, dataRACE$PWGTP/sum(dataRACE$PWGTP),
+                               type = "pie",
+                              name = "Bar", colorByPoint = TRUE, center = c('85%', '10%'),
+                              size = 100, dataLabels = list(enabled = TRUE)) %>% 
+  hc_yAxis(title = list(text = "Divorce Rate"),
+           labels = list(format = "{value}%"), max = 100) %>% 
+  hc_xAxis(categories = dataRACE$RACE) %>% 
+  hc_legend(enabled = FALSE) %>% 
+  hc_tooltip(pointFormat = "{point.y}%") 
+```
+
+As the plot shown above, the Asian people demonstrated the lowest divorce rate while the Black or Afican American, American Indian or Alaska Native have shown higher divorce rate comparing to the others. And the difference of divorce rate in different races might be caused by the cultural differences.
+
+##3.3 Occupation / industry
+We divided occupations to 25 different industries in the hope of getting to know the divorce rates regarding different industries.
+
+###3.3.1 Data manipulation
+```{r,echo=FALSE}
+#get the proportion of divorced according to different OCCUPATION level
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(OCCP1))
+
+everDivorcedData <- 
+  everDivorcedAllData %>%
+  filter(!is.na(OCCP1))
+
+dataOCC <- aggregate(marriedData$PWGTP, by = list(marriedData$OCCP1),FUN = sum)
+names(dataOCC) <- c('OCCP','PWGTP')
+
+dataDivorcedOCC <- aggregate(everDivorcedData$PWGTP, by = list(everDivorcedData$OCCP1),FUN = sum)
+names(dataDivorcedOCC) <- c('OCCP','PWGTP')
+
+dataOCC <- as.vector(dataOCC)
+dataDivorcedOCC <- as.vector(dataDivorcedOCC)
+# divorce rate for different industry.
+DR.OCCU=dataDivorcedOCC[,2] / dataOCC[,2]
+
+DF.OCC=data.frame(Industry=dataOCC$OCCP,DivorceRate=DR.OCCU)
+```
+
+
+```{r,warning=FALSE,message=FALSE}
+# draw bar plot(interactive)
+library(plotly)
+library(reshape2)
+
+p <- ggplot(DF.OCC, aes(x = Industry, y = DivorceRate)) +
+  geom_bar(stat = "identity",fill = "steelblue")+labs(title="Divorce rate in different Industry")+
+  ylab("divorce rate") + theme_minimal()
+
+ggplotly(p)
+```
+
+###3.3.2  A man in the financial industry or a man in the computer science industry? That's not a question. 
+
+```{r}
+##### let's calculate the divorce rate for different gender
+dataOCC1 <- aggregate(marriedData$PWGTP, by = list(marriedData$OCCP1,marriedData$SEX),FUN = sum)
+dataM.OCC1 <- dataOCC1[1:25,c(1,3)]
+dataM.OCC2 <- dataOCC1[26:50,3]
+dataM.OCCnew <- cbind(dataM.OCC1,dataM.OCC2)
+names(dataM.OCCnew) <- c('OCCP','PWGTP.married.man','PWGTP.married.woman')
+```
+
+```{r,echo=FALSE}
+dataDivorcedOCC <- aggregate(everDivorcedData$PWGTP, by = list(everDivorcedData$OCCP1,everDivorcedData$SEX),FUN = sum)
+dataD.OCC1 <- dataDivorcedOCC[1:25,c(1,3)]
+dataD.OCC2 <- dataDivorcedOCC[26:50,3]
+dataD.OCCnew <- cbind(dataD.OCC1,dataD.OCC2)
+names(dataD.OCCnew) <- c('OCCP','PWGTP.divorced.man','PWGTP.divorced.women')
+
+
+dataM.OCCnew <- as.vector(dataM.OCCnew)
+dataD.OCCnew <- as.vector(dataD.OCCnew)
+DrOCC.man=dataD.OCCnew[,2] / dataM.OCCnew[,2]
+DrOCC.woman=dataD.OCCnew[,3] / dataM.OCCnew[,3]
+
+# divorce rate for man & women
+#round(DrOCC.man,3)
+#round(DrOCC.woman,3)
+# There ia also an graph drawed by javascript
+# It shows the difference between male and famale in this part of topic
+```
+It is said that men working in the computer science industry are more reliable than those working in the financial industry. But is it really true regarding the divorce rates? 
+
+![divorce rate for men and women.](C:/Study/Columbia/W4243_Applied_Data_Science/Project1/data/amCharts.png)
+
+[interactive graph and more details](http://zhichi1992.ucoz.net/FJJ/index.html)
+
+Actually, we can see that people that work in both financial, computer science industries have low divorce rates. If we only consider about the probability of getting divorced, marrying a banker or marrying a software engineer are almost the same. 
+
+According to the plots above, we can see that people who work in CMM(computer science), EDU(computer), ENG(engineering), FFF(farming,fishing and forest), MIL(military) and SCI (science) have relatively lower divorce rates than people in other industries. Overall, the divorce rates for women are higher than men. And women in the entertainment industry has the highest divorce rate which is 58.6%.
+
+##3.4 Income Levels (including working hours)
+We will first check the relationship between the last 12 month income with divorce rate and the relationship between the work hour per week with divorce rate, then we will combine the two variables. Specificly, we divided income and work hour into 11 and 10 categories respectfully.
+
+###3.4.1 Data manipulation
+```{r,echo=FALSE}
+# get the proportion of divorced according to different incomes level
+
+#since we'll use WAGP2,so filter it to remove na out
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(WAGP2))
+
+everDivorcedData <- 
+  everDivorcedAllData %>%
+  filter(!is.na(WAGP2))
+
+#calculate population by different salary levels
+dataSalary <- aggregate(marriedData$PWGTP,by=list(marriedData$WAGP2),FUN=sum)
+names(dataSalary)<-c('WAGP','PWGTP')
+
+#calculate population of divorced people by different salary levels
+dataDivorcedSalary <- aggregate(everDivorcedData$PWGTP,by=list(everDivorcedData$WAGP2),FUN=sum)
+names(dataDivorcedSalary)<-c('WAGP','PWGTP')
+dataSalary <- as.vector(dataSalary)
+dataDivorcedSalary <- as.vector(dataDivorcedSalary)
+
+# get the proportion of divorced according to work hour per week
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(WKHP)) 
+
+everDivorcedData <- 
+  everDivorcedAllData %>%
+  filter(!is.na(WKHP))
+
+dataWKHP <- aggregate(marriedData$PWGTP,by = list(marriedData$WKHP),FUN = sum)
+names(dataWKHP)<-c('WKHP','PWGTP')
+
+dataDivorcedWKHP <- aggregate(everDivorcedData$PWGTP,by=list(everDivorcedData$WKHP),FUN=sum)
+names(dataDivorcedWKHP)<-c('WKHP','PWGTP')
+
+dataWKHP <- as.vector(dataWKHP)
+dataDivorcedWKHP <- as.vector(dataDivorcedWKHP)
+```
+
+```{r}
+#calculate population of divorced people by different salary levels
+dataDivorcedSalary <- aggregate(everDivorcedData$PWGTP,by=list(everDivorcedData$WAGP2),FUN=sum)
+names(dataDivorcedSalary)<-c('WAGP','PWGTP')
+dataSalary <- as.vector(dataSalary)
+dataDivorcedSalary <- as.vector(dataDivorcedSalary)
+income_divorced_rate_frame=data.frame(rate=dataDivorcedSalary[,2] / dataSalary[,2],
+                                      income=sort(unique(marriedData$WAGP2)))
+
+# get the proportion of divorced according to work hour per week
+hour_divorced_rate_frame=data.frame(rate=dataDivorcedWKHP[,2] / dataWKHP[,2],
+                                      hour=c(0,5,15,25,35,45,55,65,75,85,95))
+```
+
+###3.4.2 Divorce rates against income levels or working hours
+```{r}
+#income against divorce rate
+library(ggplot2)
+income_divorced_rate_plot <- ggplot(data=income_divorced_rate_frame, aes(x = income, y = rate))
+income_divorced_rate_plot + geom_point(colour = "red", size = 1.5) + ggtitle("Income Against Divorced rate") +
+                            labs(x="Income",y="Divorce Rates")
+
+#work hour per week against divorce rate
+hour_divorced_rate_plot <- ggplot(data=hour_divorced_rate_frame, aes(x = hour, y = rate))
+hour_divorced_rate_plot + geom_point(colour = "red", size = 1.5) + ggtitle("Work Hour Against Divorced rate") +
+                          geom_smooth(method = "lm",formula = y ~ poly(x, 2),span=1.0, se = FALSE) +
+                          labs(x="Hour Per Week",y="Divorce Rates") 
+```
+
+As we can see,if we only concentrate on income levels, then the higher a person makes, the lower his or her divorce rate is;If we only see working durations, then fewer and more working hours may have higher divorce rates.
+
+###3.4.3  You want accompany or money?
+```{r,warning=FALSE,echo=FALSE}
+#data process of heatmap for income,workhour and divorce rate
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(WAGP2)) %>%
+  filter(!is.na(WKHP))  %>%
+  filter(WKHP !='<0')   
+  
+everDivorcedData <- 
+  everDivorcedAllData %>%
+  filter(!is.na(WAGP2)) %>%
+  filter(!is.na(WKHP)) %>%
+  filter(WKHP !='<0')  
+ 
+
+data_WAGP_WKHP <- aggregate(marriedData$PWGTP,by = list(marriedData$WKHP,marriedData$WAGP2),FUN = sum)
+names(data_WAGP_WKHP)<-c('WKHP','WAGP2','PWGTP')
+
+
+dataDivorced_WAGP_WKHP <- aggregate(everDivorcedData$PWGTP,by=list(everDivorcedData$WKHP,everDivorcedData$WAGP2),FUN=sum)
+names(dataDivorced_WAGP_WKHP)<-c('WKHP','WAGP2','PWGTP')
+```
+
+```{r,warning=FALSE}
+library(d3heatmap)
+#create a matrix so that we can load the data for plotting heatmap
+heatmap_matrix<-matrix(data=NA,nrow=nrow(dataWKHP)-1,ncol=nrow(dataSalary))
+
+for (i in 1:ncol(heatmap_matrix)){
+ for(j in 1:nrow(heatmap_matrix)){
+   heatmap_matrix[j,i]=dataDivorced_WAGP_WKHP[10*(i-1)+j,3]/data_WAGP_WKHP[10*(i-1)+j,3]
+ }
+}
+
+#change column and row names
+dimnames(heatmap_matrix) = list( 
+  sort(unique(dataAll$WKHP))[-1],         # row names 
+     sort(unique(dataAll$WAGP2))) # column names
+
+d3heatmap(heatmap_matrix,Rowv=FALSE,Colv=FALSE,colors='Reds')
+```
+
+The heatmap tells us that if we see income levels and working hours together, then we may say that a competitive income with middle work hours will generate the lowest divorce rate. 
+
+# 4.Where do they differ? New York vs Nevada
+After studying all the interested factors, let's look back to the first map.
+
+We picked New York and Nevada, which are states with lowest and highest divorce rates.
+
+## 4.1 Data manipulation
+```{r,echo=FALSE}
+#compare income density between NY and MS
+
+#income
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(WAGP2)) %>%
+  filter(!is.na(ST))
+
+#read statename and use it to deal the original data
+statenames <- fread('statename.csv',select = "name")
+statenames<-statenames[- grep("puerto rico", statenames$name),]
+marriedData$ST <- factor(marriedData$ST)
+levels(marriedData$ST) <- statenames$name
+
+marriedData$WAGP2 <- factor(marriedData$WAGP2)
+WAGP2Status <-  dataSalary[,2]/dataDivorcedSalary[,2]
+levels(marriedData$WAGP2) <- WAGP2Status
+```
+
+```{r}
+income_NY=
+marriedData[marriedData$ST=='new york',]$PWGTP %*% 
+            as.numeric(levels(marriedData[marriedData$ST=='new york',]$WAGP2))[marriedData[marriedData$ST=='new york',]$WAGP2]/
+            sum(marriedData[marriedData$ST=='new york',]$PWGTP)
+income_NV=
+marriedData[marriedData$ST=='nevada',]$PWGTP %*% 
+            as.numeric(levels(marriedData[marriedData$ST=='nevada',]$WAGP2))[marriedData[marriedData$ST=='nevada',]$WAGP2]/
+            sum(marriedData[marriedData$ST=='nevada',]$PWGTP)
+
+```
+
+```{r,echo=FALSE}
+#work hour
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(WKHP)) %>%
+  filter(!is.na(ST))
+
+#read statename and use it to deal the original data
+marriedData$ST <- factor(marriedData$ST)
+levels(marriedData$ST) <- statenames$name
+
+marriedData$WKHP <- factor(marriedData$WKHP)
+WKHPStatus <-  dataWKHP[,2]/dataDivorcedWKHP[,2]
+levels(marriedData$WKHP) <- WKHPStatus
+
+work_hour_NY=marriedData[marriedData$ST=='new york',]$PWGTP %*% 
+          as.numeric(levels(marriedData[marriedData$ST=='new york',]$WKHP))[marriedData[marriedData$ST=='new york',]$WKHP]/
+          sum(marriedData[marriedData$ST=='new york',]$PWGTP)
+work_hour_NV=marriedData[marriedData$ST=='nevada',]$PWGTP %*% 
+          as.numeric(levels(marriedData[marriedData$ST=='nevada',]$WKHP))[marriedData[marriedData$ST=='nevada',]$WKHP]/
+          sum(marriedData[marriedData$ST=='nevada',]$PWGTP)
+
+#education level
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(SCHL)) %>%
+  filter(!is.na(ST))
+
+#read statename and use it to deal the original data
+marriedData$ST <- factor(marriedData$ST)
+levels(marriedData$ST) <- statenames$name
+
+marriedData$SCHL <- factor(marriedData$SCHL)
+SCHLStatus <- 1/Edu_DivRate
+levels(marriedData$SCHL) <- SCHLStatus
+
+education_NY=marriedData[marriedData$ST=='new york',]$PWGTP %*% 
+  as.numeric(levels(marriedData[marriedData$ST=='new york',]$SCHL))[marriedData[marriedData$ST=='new york',]$SCHL]/
+  sum(marriedData[marriedData$ST=='new york',]$PWGTP)
+education_NV=marriedData[marriedData$ST=='nevada',]$PWGTP %*% 
+  as.numeric(levels(marriedData[marriedData$ST=='nevada',]$SCHL))[marriedData[marriedData$ST=='nevada',]$SCHL]/
+  sum(marriedData[marriedData$ST=='nevada',]$PWGTP)
+
+#occupation level
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(OCCP1)) %>%
+  filter(!is.na(ST))
+
+#read statename and use it to deal the original data
+marriedData$ST <- factor(marriedData$ST)
+levels(marriedData$ST) <- statenames$name
+
+marriedData$OCCP1 <- factor(marriedData$OCCP1)
+OCCP1Status <- 1/DR.OCCU
+levels(marriedData$OCCP1) <- OCCP1Status
+
+occupation_NY=marriedData[marriedData$ST=='new york',]$PWGTP %*% 
+  as.numeric(levels(marriedData[marriedData$ST=='new york',]$OCCP1))[marriedData[marriedData$ST=='new york',]$OCCP1]/
+  sum(marriedData[marriedData$ST=='new york',]$PWGTP)
+occupation_NV=marriedData[marriedData$ST=='nevada',]$PWGTP %*% 
+  as.numeric(levels(marriedData[marriedData$ST=='nevada',]$OCCP1))[marriedData[marriedData$ST=='nevada',]$OCCP1]/
+  sum(marriedData[marriedData$ST=='nevada',]$PWGTP)
+
+#race level
+marriedData <- 
+  marriedAllData %>%
+  filter(!is.na(RAC1P)) %>%
+  filter(!is.na(ST))
+
+#read statename and use it to deal the original data
+marriedData$ST <- factor(marriedData$ST)
+levels(marriedData$ST) <- statenames$name
+
+marriedData$RAC1P <- factor(marriedData$RAC1P)
+RAC1PStatus <-   dataRACE[,2]/dataDivorcedRACE[,2]
+levels(marriedData$RAC1P) <- RAC1PStatus
+
+race_NY=marriedData[marriedData$ST=='new york',]$PWGTP %*% 
+  as.numeric(levels(marriedData[marriedData$ST=='new york',]$RAC1P))[marriedData[marriedData$ST=='new york',]$RAC1P]/
+  sum(marriedData[marriedData$ST=='new york',]$PWGTP)
+race_NV=marriedData[marriedData$ST=='nevada',]$PWGTP %*% 
+  as.numeric(levels(marriedData[marriedData$ST=='nevada',]$RAC1P))[marriedData[marriedData$ST=='nevada',]$RAC1P]/
+  sum(marriedData[marriedData$ST=='nevada',]$PWGTP)
+```
+
+## 4.2 Difference between NY and NV
+We built a score system for 5 variables: income, working hour, education level, occupation and race. We use the reciprocal of divorce rates as weights for each category of every variable so that the overall weighted scores is of the same scale. In the "spideweb" chart, we didn't try to render a quantitative result like an exact divorce rate, we just wanted to show the qualitative results of comparing two states. Hence in this way ,we could see the main differences between two states with regards to 5 different variables.
+```{r,echo=FALSE}
+library(highcharter)
+highchart() %>% 
+  hc_chart(polar = TRUE, type = "line") %>% 
+  hc_title(text = "New York vs Nevada") %>% 
+  hc_xAxis(categories = c('Income', 'Work Hour', 'Education', 'Occupation', 'Race'),
+           tickmarkPlacement = 'on',
+           lineWidth = 0) %>% 
+  hc_yAxis(gridLineInterpolation = 'polygon',
+           lineWidth = 0,
+           min = 270,
+           max = 290) %>% 
+  hc_series(
+    list(
+      name = "New York",
+      data = round(100*c(income_NY, work_hour_NY, 0.9*education_NY, occupation_NY, 0.93*race_NY),2),
+      pointPlacement = 'on'
+    ),
+    list(
+      name = "Nevada",
+      data = round(100*c(income_NV, work_hour_NV, 0.9*education_NV, occupation_NV, 0.93*race_NV),2),
+      pointPlacement = 'on'
+    )
+  )
+```
+
+It's obvious that the different divorce rates between New York and Nevada are mainly caused by the differences of income levels and occupation distributions of the two states.
+
+#5. Conclusions
+We can see that even the divorce rate is high, it differs in different aspects like education level, race, working industry, working hour and income. No matter who you are, if you want a stable marriage, it's good to have a bachelor's degree(maybe higher), work in industries like computer science, education, engineering, work an appropriate time per week(40-60 hours) and have high income. In a word, work and study hard! And don't forget to spend time with your partner !
+
+ 
+#6. Future considerations and improvement space.
+1.The features that we pick is based on our interests, but are they really important reasons for the end of marriage? Maybe we need further test.
+
+2.The score system can be further improved by optimizing the weights or the model.
+
+3.If had time, we could build a shiny app that can automate the process of calculating divorce rate and plotting graphs. And it can show you a person's  probability of getting divorced based on your input information.
