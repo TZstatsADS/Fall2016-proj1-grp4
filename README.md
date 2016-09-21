@@ -4,7 +4,7 @@
 Term: Fall 2016
 
 + Team #4
-+ Projec title: Lorem ipsum dolor sit amet
++ Projec title: Divorce rate and stories behind
 + Team members
 	+ Weichuan Wu
 	+ Jingjing Feng
